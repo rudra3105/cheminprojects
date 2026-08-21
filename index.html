@@ -569,14 +569,86 @@ const APPS_USAGE = [
   {app:'MS Teams', category:'Communication', hours:44, pct:6},
 ];
 
-let STATE = { screen:'dashboard', calView:'table', sidebarOpen:false, expandedGroups:{'org':true,'eng':true,'act':true,'ts':true} };
+let STATE = { screen:'dashboard', calView:'table', sidebarOpen:false, role:'Super Admin', loginStep:'credentials',
+  expandedGroups:{'org':true,'eng':true,'att':true,'act':true,'ts':true,'fin':true,'util':true} };
 
 function fmtPct(n){return n+'%';}
+
+/* ---------- Companies ---------- */
+const COMPANIES = [
+  {name:'Chemin Projects Pvt Ltd', code:'CHM-01', gst:'27AACCC1234A1Z5', pan:'AACCC1234A', employees:112, city:'Mumbai, India', status:'Active'},
+  {name:'Chemin Engineering Middle East FZE', code:'CHM-02', gst:'—', pan:'—', employees:41, city:'Dubai, UAE', status:'Active'},
+  {name:'Chemin Projects Singapore Pte Ltd', code:'CHM-03', gst:'—', pan:'—', employees:31, city:'Singapore', status:'Active'},
+];
+
+/* ---------- Roles for role-aware dashboard ---------- */
+const APP_ROLES = ['Super Admin','HR Admin','HR Executive','Project Director','Project Manager','Reporting Manager','Team Lead','Finance Manager','Accounts Executive','Employee'];
+
+/* ---------- Attendance ---------- */
+const ATTENDANCE_TODAY = EMPLOYEES.map((e,i)=>({
+  ...e,
+  checkIn: i%9===8 ? '—' : `0${8+(i%2)}:${(i*7)%60<10?'0':''}${(i*7)%60} AM`,
+  checkOut: i%9===8 ? '—' : (i%5===0? '—' : `0${5+(i%3)}:${(i*11)%60<10?'0':''}${(i*11)%60} PM`),
+  location: ['Office','Site','WFH','Client Site','Office'][i%5],
+  status: i%9===8 ? 'On Leave' : (i%7===0?'Half Day': (i%6===0?'Late':'Present')),
+}));
+const ATTN_SUMMARY = {present:149, office:88, site:34, wfh:22, holidayWorking:5, late:9, halfDay:6, onLeave:13};
+
+/* ---------- Leave ---------- */
+const LEAVE_TYPES = [
+  {name:'Earned Leave', total:18, used:7, color:'#1B6FB0'},
+  {name:'Sick Leave', total:10, used:3, color:'#8DC63F'},
+  {name:'Casual Leave', total:8, used:4, color:'#F0A93B'},
+  {name:'Compensatory Off', total:4, used:1, color:'#7C63E8'},
+];
+const LEAVE_REQUESTS = [
+  {emp:'Ishita Verma', type:'Sick Leave', from:'Aug 18, 2026', to:'Aug 20, 2026', days:3, status:'Approved', reason:'Fever, medical rest advised'},
+  {emp:'Tanvi Bhatt', type:'Casual Leave', from:'Aug 22, 2026', to:'Aug 22, 2026', days:1, status:'Pending', reason:'Personal work'},
+  {emp:'Devansh Rao', type:'Earned Leave', from:'Sep 01, 2026', to:'Sep 05, 2026', days:5, status:'Pending', reason:'Family function'},
+  {emp:'Sanya Kapoor', type:'Compensatory Off', from:'Aug 24, 2026', to:'Aug 24, 2026', days:1, status:'Approved', reason:'Weekend site visit compensation'},
+  {emp:'Ananya Joshi', type:'Sick Leave', from:'Aug 15, 2026', to:'Aug 16, 2026', days:2, status:'Rejected', reason:'Insufficient balance'},
+];
+
+/* ---------- Holidays ---------- */
+const HOLIDAYS = [
+  {name:'Independence Day', date:'Aug 15, 2026', type:'Public'},
+  {name:'Ganesh Chaturthi', date:'Sep 04, 2026', type:'Regional'},
+  {name:'Gandhi Jayanti', date:'Oct 02, 2026', type:'Public'},
+  {name:'Diwali', date:'Nov 08, 2026', type:'Public'},
+  {name:'Bhai Dooj', date:'Nov 10, 2026', type:'Optional'},
+  {name:'Christmas', date:'Dec 25, 2026', type:'Public'},
+  {name:'Company Foundation Day', date:'Jan 14, 2027', type:'Company'},
+];
+
+/* ---------- Expenses ---------- */
+const EXPENSES = [
+  {emp:'Arjun Nair', category:'Site Expenses', desc:'Site visit — Bhilai Refinery', amount:12400, date:'Aug 12, 2026', status:'Approved'},
+  {emp:'Meera Iyengar', category:'Travel', desc:'Flight — Mumbai to Doha (client review)', amount:38200, date:'Aug 14, 2026', status:'Pending'},
+  {emp:'Kabir Malhotra', category:'Accommodation', desc:'Hotel stay — Dahej, 3 nights', amount:16500, date:'Aug 10, 2026', status:'Approved'},
+  {emp:'Sanya Kapoor', category:'Fuel', desc:'Site vehicle fuel reimbursement', amount:3200, date:'Aug 16, 2026', status:'Pending'},
+  {emp:'Rehan Siddiqui', category:'Food', desc:'Client meeting — team lunch', amount:2850, date:'Aug 17, 2026', status:'Rejected'},
+  {emp:'Ananya Joshi', category:'Miscellaneous', desc:'Printing & stationery — site office', amount:1100, date:'Aug 13, 2026', status:'Approved'},
+];
+
+/* ---------- Payroll ---------- */
+const PAYROLL_SUMMARY = {processed:162, pending:22, totalPayout:18420000, avgSalary:113700};
+const PAYROLL_COMPONENTS = [
+  {name:'Basic Salary', amount:52000, type:'Earning'},
+  {name:'House Rent Allowance', amount:20800, type:'Earning'},
+  {name:'Conveyance Allowance', amount:3200, type:'Earning'},
+  {name:'Special Allowance', amount:14500, type:'Earning'},
+  {name:'Provident Fund (PF)', amount:6240, type:'Deduction'},
+  {name:'ESIC', amount:975, type:'Deduction'},
+  {name:'Professional Tax', amount:200, type:'Deduction'},
+  {name:'Income Tax (TDS)', amount:8100, type:'Deduction'},
+];
+
 
 /* ---------- Navigation config ---------- */
 const NAV = [
   {type:'item', id:'dashboard', label:'Dashboard', icon:'grid'},
-  {type:'group', id:'org', label:'Organization Management', icon:'building', items:[
+  {type:'group', id:'org', label:'Organization', icon:'building', items:[
+    {id:'companies', label:'Companies'},
     {id:'employees', label:'Employees'},
     {id:'departments', label:'Departments'},
     {id:'designations', label:'Designations'},
@@ -585,9 +657,16 @@ const NAV = [
   ]},
   {type:'group', id:'eng', label:'Engineering Resources', icon:'compass', items:[
     {id:'skillmapping', label:'Skill Mapping'},
+    {id:'certifications', label:'Certifications'},
     {id:'discipline', label:'Discipline Assignment'},
     {id:'reporting', label:'Reporting Structure'},
     {id:'allocation', label:'Team Allocation'},
+  ]},
+  {type:'group', id:'att', label:'Attendance & Leave', icon:'calendar', items:[
+    {id:'attendance', label:'Attendance'},
+    {id:'leave', label:'Leave Management'},
+    {id:'holidays', label:'Holiday Calendar'},
+    {id:'worklocation', label:'Work Location'},
   ]},
   {type:'group', id:'act', label:'Activity Monitoring', icon:'activity', items:[
     {id:'liveactivity', label:'Live Activity'},
@@ -599,6 +678,11 @@ const NAV = [
     {id:'timesheets', label:'Daily Timesheets'},
     {id:'approvals', label:'Approvals'},
   ]},
+  {type:'group', id:'fin', label:'Finance', icon:'briefcase', items:[
+    {id:'expenses', label:'Expenses'},
+    {id:'payroll', label:'Payroll'},
+    {id:'salaryslip', label:'Salary Slips'},
+  ]},
   {type:'group', id:'util', label:'Utilization', icon:'gauge', items:[
     {id:'utilization', label:'Employee & Dept. Utilization'},
     {id:'manhours', label:'Project Man-Hours'},
@@ -608,22 +692,32 @@ const NAV = [
 ];
 const PAGE_META = {
   dashboard:{title:'Executive Dashboard', sub:'Real-time overview of engineering workforce performance', crumb:'Dashboard'},
+  companies:{title:'Companies', sub:'Manage legal entities under the Chemin Projects group', crumb:'Organization / Companies'},
+  companyprofile:{title:'Company Profile', sub:'Legal, statutory and banking details', crumb:'Organization / Companies / Profile'},
   employees:{title:'Employees', sub:'Manage engineering personnel across all disciplines', crumb:'Organization / Employees'},
-  employeeprofile:{title:'Employee Profile', sub:'Complete engineering & activity profile', crumb:'Organization / Employees / Profile'},
+  employeeprofile:{title:'Employee Profile', sub:'Complete engineering, HR & activity profile', crumb:'Organization / Employees / Profile'},
   departments:{title:'Departments', sub:'Engineering departments and performance overview', crumb:'Organization / Departments'},
   designations:{title:'Designations', sub:'Job titles and organizational hierarchy levels', crumb:'Organization / Designations'},
   roles:{title:'Roles', sub:'Access roles and assigned permission sets', crumb:'Organization / Roles'},
   permissions:{title:'Permission Matrix', sub:'Module-level access control across roles', crumb:'Organization / Permission Matrix'},
   skillmapping:{title:'Skill Mapping', sub:'Engineering skills, certifications and experience', crumb:'Engineering Resources / Skill Mapping'},
+  certifications:{title:'Certifications', sub:'Track professional certifications and renewal dates', crumb:'Engineering Resources / Certifications'},
   discipline:{title:'Discipline Assignment', sub:'Assign employees to engineering disciplines', crumb:'Engineering Resources / Discipline Assignment'},
   reporting:{title:'Reporting Structure', sub:'Organization hierarchy and reporting lines', crumb:'Engineering Resources / Reporting Structure'},
   allocation:{title:'Team Allocation', sub:'Assign engineers to active projects by capacity', crumb:'Engineering Resources / Team Allocation'},
+  attendance:{title:'Attendance', sub:'Daily check-in, check-out and work location tracking', crumb:'Attendance & Leave / Attendance'},
+  leave:{title:'Leave Management', sub:'Leave balances, requests and approvals', crumb:'Attendance & Leave / Leave Management'},
+  holidays:{title:'Holiday Calendar', sub:'Public, regional, optional and company holidays', crumb:'Attendance & Leave / Holiday Calendar'},
+  worklocation:{title:'Work Location', sub:'Office, site, client-site and WFH distribution', crumb:'Attendance & Leave / Work Location'},
   liveactivity:{title:'Live Activity Monitoring', sub:'Real-time workforce activity status', crumb:'Activity Monitoring / Live Activity'},
   productivity:{title:'Productivity Dashboard', sub:'Productivity trends across employees and departments', crumb:'Activity Monitoring / Productivity'},
   screenshots:{title:'Screenshot Monitoring', sub:'Periodic activity captures across the workforce', crumb:'Activity Monitoring / Screenshots'},
   appusage:{title:'Application Usage', sub:'Software and tool usage analytics', crumb:'Activity Monitoring / Application Usage'},
   timesheets:{title:'Daily Timesheets', sub:'Log and track engineering hours by project', crumb:'Timesheet Management / Daily Timesheets'},
   approvals:{title:'Timesheet Approvals', sub:'Review and approve submitted timesheets', crumb:'Timesheet Management / Approvals'},
+  expenses:{title:'Expenses', sub:'Travel, site and miscellaneous expense claims', crumb:'Finance / Expenses'},
+  payroll:{title:'Payroll', sub:'Salary structures, processing and compensation', crumb:'Finance / Payroll'},
+  salaryslip:{title:'Salary Slips', sub:'Generate and download professional salary slips', crumb:'Finance / Salary Slips'},
   utilization:{title:'Utilization Dashboard', sub:'Employee and department utilization against capacity', crumb:'Utilization'},
   manhours:{title:'Project Man-Hours', sub:'Planned vs. actual man-hours by project', crumb:'Utilization / Project Man-Hours'},
   reports:{title:'Reports Center', sub:'Generate and export operational reports', crumb:'Reports Center'},
@@ -673,11 +767,22 @@ function renderLogin(){
       <div class="field"><label>Work email</label><input type="email" placeholder="you@cheminprojects.com"></div>
       <button class="btn btn-primary btn-block" onclick="closeForgot()">Send reset link</button>
     </div>
+  </div>
+  <div class="overlay" id="otp-overlay" onclick="if(event.target===this){}">
+    <div class="modal">
+      <div class="modal-head"><h3>Verify your identity</h3><span class="icon-btn" onclick="document.getElementById('otp-overlay').classList.remove('show')">${ic('x')}</span></div>
+      <p style="color:var(--ink-500); font-size:13px; margin:0 0 20px;">We've sent a 6-digit code to <b style="color:var(--navy-950);">r••••••e@cheminprojects.com</b>. Enter it below to continue.</p>
+      <div style="display:flex; gap:8px; margin-bottom:20px;">
+        ${[1,2,3,4,5,6].map(i=>`<input maxlength="1" value="${[4,7,2,9,0,5][i-1]}" style="width:100%; text-align:center; font-size:18px; font-weight:700; padding:12px 0; border:1.5px solid var(--line); border-radius:10px; font-family:'JetBrains Mono',monospace;">`).join('')}
+      </div>
+      <button class="btn btn-primary btn-block" onclick="document.getElementById('otp-overlay').classList.remove('show'); navigateInit();">Verify & continue</button>
+      <p style="text-align:center; font-size:12px; color:var(--ink-400); margin-top:16px;">Didn't receive a code? <span class="link-btn">Resend OTP</span></p>
+    </div>
   </div>`;
 }
 function showForgot(){document.getElementById('forgot-overlay').classList.add('show');}
 function closeForgot(){document.getElementById('forgot-overlay').classList.remove('show');}
-function doLogin(){ navigateInit(); }
+function doLogin(){ document.getElementById('otp-overlay').classList.add('show'); }
 
 function navigateInit(){
   document.getElementById('root').innerHTML = appShellHTML();
@@ -699,7 +804,7 @@ function appShellHTML(){
       <div class="sidebar-footer">
         <div class="sidebar-user">
           <div class="avatar">RD</div>
-          <div><div class="u-name">Rohan Deshpande</div><div class="u-role">Head — Mechanical Engg.</div></div>
+          <div><div class="u-name">Rohan Deshpande</div><div class="u-role">${STATE.role}</div></div>
         </div>
       </div>
     </aside>
@@ -717,14 +822,18 @@ function appShellHTML(){
           <input id="topbar-search-input" placeholder="Search employees, projects, timesheets…">
         </div>
         <div class="topbar-right">
+          <select class="select-mini" id="role-switcher" style="font-weight:700; color:var(--navy-900); border-color:var(--blue-100); background:var(--blue-100);" onchange="switchRole(this.value)">
+            ${APP_ROLES.map(r=>`<option ${r===STATE.role?'selected':''}>${r}</option>`).join('')}
+          </select>
+          <div class="topbar-divider"></div>
           <span class="icon-btn" title="Dark mode (UI only)"><span id="dark-toggle" class="toggle" onclick="event.stopPropagation(); this.classList.toggle('on')"></span></span>
           <div class="topbar-divider"></div>
           <span class="icon-btn" onclick="toast('No new messages')">${ic('message')}</span>
           <span class="icon-btn" onclick="toast('3 new notifications')">${ic('bell')}<span class="dot"></span></span>
           <div class="topbar-divider"></div>
           <div class="topbar-user" onclick="toggleUserMenu()">
-            <div class="avatar">RD</div>
-            <div><div class="tu-name">Rohan Deshpande</div><div class="tu-role">Administrator</div></div>
+            <div class="avatar" id="topbar-avatar">RD</div>
+            <div><div class="tu-name" id="topbar-uname">Rohan Deshpande</div><div class="tu-role" id="topbar-urole">${STATE.role}</div></div>
             ${ic('chevdown')}
           </div>
         </div>
@@ -734,6 +843,15 @@ function appShellHTML(){
   </div>
   <div class="toast-wrap" id="toast-wrap"></div>
   <div class="overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()"></div>`;
+}
+
+function switchRole(role){
+  STATE.role = role;
+  document.getElementById('topbar-urole').textContent = role;
+  const sidebarRole = document.querySelector('.sidebar-user .u-role');
+  if(sidebarRole) sidebarRole.textContent = role;
+  if(STATE.screen==='dashboard'){ document.getElementById('content').innerHTML = renderScreen('dashboard'); afterRenderHooks('dashboard'); }
+  toast('Switched to '+role+' view');
 }
 
 function buildSidebar(){
@@ -787,6 +905,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function renderScreen(id){
   switch(id){
     case 'dashboard': return screenDashboard();
+    case 'companies': return screenCompanies();
     case 'employees': return screenEmployees();
     case 'employeeprofile': return screenEmployeeProfile();
     case 'departments': return screenDepartments();
@@ -794,15 +913,23 @@ function renderScreen(id){
     case 'roles': return screenRoles();
     case 'permissions': return screenPermissions();
     case 'skillmapping': return screenSkillMapping();
+    case 'certifications': return screenCertifications();
     case 'discipline': return screenDiscipline();
     case 'reporting': return screenReporting();
     case 'allocation': return screenAllocation();
+    case 'attendance': return screenAttendance();
+    case 'leave': return screenLeave();
+    case 'holidays': return screenHolidays();
+    case 'worklocation': return screenWorkLocation();
     case 'liveactivity': return screenLiveActivity();
     case 'productivity': return screenProductivity();
     case 'screenshots': return screenScreenshots();
     case 'appusage': return screenAppUsage();
     case 'timesheets': return screenTimesheets();
     case 'approvals': return screenApprovals();
+    case 'expenses': return screenExpenses();
+    case 'payroll': return screenPayroll();
+    case 'salaryslip': return screenSalarySlip();
     case 'utilization': return screenUtilization();
     case 'manhours': return screenManhours();
     case 'reports': return screenReports();
@@ -825,13 +952,83 @@ function afterRenderHooks(id){
   if(id==='employeeprofile') initProfileCharts();
   if(id==='allocation') initAllocationDnD();
   if(id==='manhours') initManhoursCharts();
+  if(id==='attendance') initAttendanceCharts();
+  if(id==='leave') initLeaveCharts();
+  if(id==='payroll') initPayrollCharts();
+  if(id==='expenses') initExpenseCharts();
 }
 
 /* ================= DASHBOARD ================= */
+function dashboardRoleConfig(role){
+  const configs = {
+    'Super Admin': {greetName:'Rohan', kpis:[
+      kpi('users','bl','184','Total Employees','up','+4 this month'),
+      kpi('building','lm','3','Companies','',''),
+      kpi('compass','nv','8','Engineering Disciplines','',''),
+      kpi('shield','am','6','Active Roles','','')],
+      panel3:'approvals'},
+    'HR Admin': {greetName:'Priya', kpis:[
+      kpi('users','bl','184','Total Employees','up','+4 this month'),
+      kpi('calendar','am','13','Pending Leave Requests','',''),
+      kpi('activity','lm','149','Present Today','up','81%'),
+      kpi('briefcase','nv','7','Open Requisitions','','')],
+      panel3:'leave'},
+    'HR Executive': {greetName:'Neha', kpis:[
+      kpi('activity','lm','149','Present Today','up','81%'),
+      kpi('calendar','am','13','Pending Leave','',''),
+      kpi('clock','bl','9','Late Arrivals','down',''),
+      kpi('users','nv','6','Onboarding This Week','','')],
+      panel3:'leave'},
+    'Project Director': {greetName:'Vikram', kpis:[
+      kpi('briefcase','bl','4','Active Projects','',''),
+      kpi('gauge','lm','89%','Avg. Utilization','up','+1.4%'),
+      kpi('target','am','86%','Avg. Productivity','up','+3.2%'),
+      kpi('users','nv','184','Total Engineers','','')],
+      panel3:'approvals'},
+    'Project Manager': {greetName:'Aditi', kpis:[
+      kpi('briefcase','bl','2','My Projects','',''),
+      kpi('users','lm','24','Engineers Allocated','',''),
+      kpi('clock','am','5','Pending Timesheets','',''),
+      kpi('gauge','nv','88%','Avg. Utilization','up','')],
+      panel3:'approvals'},
+    'Reporting Manager': {greetName:'Sameer', kpis:[
+      kpi('users','bl','9','Direct Reports','',''),
+      kpi('clock','am','4','Pending Timesheet Approvals','',''),
+      kpi('calendar','lm','2','Pending Leave Approvals','',''),
+      kpi('gauge','nv','85%','Team Productivity','up','')],
+      panel3:'approvals'},
+    'Team Lead': {greetName:'Karan', kpis:[
+      kpi('users','bl','6','Team Members','',''),
+      kpi('activity','lm','5','Active Now','',''),
+      kpi('clock','am','2','Pending Timesheets','',''),
+      kpi('gauge','nv','87%','Team Productivity','up','')],
+      panel3:'activities'},
+    'Finance Manager': {greetName:'Rakesh', kpis:[
+      kpi('briefcase','bl','₹1.84Cr','Payroll Payout (Aug)','',''),
+      kpi('filetext','am','22','Pending Expense Approvals','',''),
+      kpi('gauge','lm','98%','Payroll Processed','',''),
+      kpi('target','nv','₹6.2L','Pending Reimbursements','','')],
+      panel3:'expenses'},
+    'Accounts Executive': {greetName:'Fatima', kpis:[
+      kpi('filetext','am','22','Pending Expenses','',''),
+      kpi('briefcase','bl','162','Payslips Generated','',''),
+      kpi('clock','lm','6','Reimbursements in Process','',''),
+      kpi('gauge','nv','98%','Payroll Accuracy','','')],
+      panel3:'expenses'},
+    'Employee': {greetName:'Arjun', kpis:[
+      kpi('gauge','bl','92%','My Productivity','up','+2%'),
+      kpi('clock','am','8.5','Hours Logged Today','',''),
+      kpi('calendar','lm','15','Leave Balance (days)','',''),
+      kpi('briefcase','nv','1','Active Project','','')],
+      panel3:'myleave'},
+  };
+  return configs[role] || configs['Super Admin'];
+}
 function screenDashboard(){
+  const cfg = dashboardRoleConfig(STATE.role);
   return `
   <div class="page-head">
-    <div><h1>Good morning, Rohan.</h1><p class="page-sub">Here's how engineering operations are tracking today, Wed 19 Aug – Thu 20 Aug 2026.</p></div>
+    <div><h1>Good morning, ${cfg.greetName}.</h1><p class="page-sub">Here's your ${STATE.role} view of engineering operations, Wed 19 Aug – Thu 20 Aug 2026.</p></div>
     <div class="page-head-actions">
       <button class="btn btn-outline btn-sm">${ic('download')} Export summary</button>
       <button class="btn btn-primary btn-sm" onclick="go('timesheets')">${ic('plus')} Quick action</button>
@@ -839,10 +1036,7 @@ function screenDashboard(){
   </div>
 
   <div class="grid g-4" style="margin-bottom:18px;">
-    ${kpi('users','bl','184','Total Employees','up','+4 this month')}
-    ${kpi('compass','nv','162','Active Engineers','up','+2.1%')}
-    ${kpi('building','lm','8','Departments','up','')}
-    ${kpi('sitemap','am','8','Engineering Disciplines','',''  )}
+    ${cfg.kpis.join('')}
   </div>
   <div class="grid g-4" style="margin-bottom:18px;">
     ${kpi('activity','lm','149',"Today's Active Employees",'up','81% of workforce')}
@@ -904,17 +1098,53 @@ function screenDashboard(){
         </div>`).join('')}
     </div>
     <div class="card span-4">
-      <div class="card-head"><h3>Pending Approvals</h3><span class="badge b-amber">${TIMESHEETS.filter(t=>t.status==='Pending').length} pending</span></div>
+      ${dashboardPanel3(cfg.panel3)}
+    </div>
+  </div>
+  `;
+}
+function dashboardPanel3(kind){
+  if(kind==='leave'){
+    return `<div class="card-head"><h3>Pending Leave Requests</h3><span class="badge b-amber">${LEAVE_REQUESTS.filter(l=>l.status==='Pending').length} pending</span></div>
+      ${LEAVE_REQUESTS.filter(l=>l.status==='Pending').map(l=>`
+        <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--line-soft);">
+          <div class="av" style="background:${avaColor(l.emp)}; width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${initials(l.emp)}</div>
+          <div style="flex:1; min-width:0;"><div class="cp-name" style="font-size:12.5px;">${l.emp}</div><div class="cp-sub">${l.type} · ${l.days}d</div></div>
+          <span class="icon-action" onclick="toast('Leave approved')">${ic('check2')}</span>
+        </div>`).join('')}
+      <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px;" onclick="go('leave')">Review all leave requests</button>`;
+  }
+  if(kind==='expenses'){
+    return `<div class="card-head"><h3>Pending Expense Approvals</h3><span class="badge b-amber">${EXPENSES.filter(x=>x.status==='Pending').length} pending</span></div>
+      ${EXPENSES.filter(x=>x.status==='Pending').map(x=>`
+        <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--line-soft);">
+          <div class="av" style="background:${avaColor(x.emp)}; width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${initials(x.emp)}</div>
+          <div style="flex:1; min-width:0;"><div class="cp-name" style="font-size:12.5px;">${x.emp}</div><div class="cp-sub">${x.category} · ₹${x.amount.toLocaleString()}</div></div>
+          <span class="icon-action" onclick="toast('Expense approved')">${ic('check2')}</span>
+        </div>`).join('')}
+      <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px;" onclick="go('expenses')">Review all expenses</button>`;
+  }
+  if(kind==='myleave'){
+    return `<div class="card-head"><h3>My Leave Balance</h3></div>
+      ${LEAVE_TYPES.map(l=>`
+        <div style="padding:9px 0; border-bottom:1px solid var(--line-soft);">
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="font-weight:600; color:var(--navy-950);">${l.name}</span><span class="font-mono" style="color:var(--ink-500);">${l.total-l.used}/${l.total} left</span></div>
+          <div class="progress thin"><span style="width:${(l.used/l.total)*100}%; background:${l.color};"></span></div>
+        </div>`).join('')}
+      <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px;" onclick="go('leave')">Apply for leave</button>`;
+  }
+  if(kind==='activities'){
+    return `<div class="card-head"><h3>Team Activity</h3></div>
+      ${ACTIVITIES.map(a=>`<div class="timeline-item"><div class="timeline-dot ${a.kind}"></div><div class="timeline-body"><b>${a.name}</b><span>${a.action} · ${a.time}</span></div></div>`).join('')}`;
+  }
+  return `<div class="card-head"><h3>Pending Approvals</h3><span class="badge b-amber">${TIMESHEETS.filter(t=>t.status==='Pending').length} pending</span></div>
       ${TIMESHEETS.filter(t=>t.status==='Pending').map(t=>`
         <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--line-soft);">
           <div class="av" style="background:${avaColor(t.emp)}; width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${initials(t.emp)}</div>
           <div style="flex:1; min-width:0;"><div class="cp-name" style="font-size:12.5px;">${t.emp}</div><div class="cp-sub">${t.project} · ${t.hours}h</div></div>
           <span class="icon-action" onclick="toast('Timesheet approved')">${ic('check2')}</span>
         </div>`).join('')}
-      <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px;" onclick="go('approvals')">Review all approvals</button>
-    </div>
-  </div>
-  `;
+      <button class="btn btn-outline btn-sm btn-block" style="margin-top:12px;" onclick="go('approvals')">Review all approvals</button>`;
 }
 function kpi(icon,tone,val,label,trend,trendtext){
   return `<div class="kpi-card">
@@ -1762,6 +1992,348 @@ window.addEventListener('resize', ()=>{
   const btn = document.getElementById('mobile-menu-btn');
   if(btn) btn.style.display = window.innerWidth<=1180 ? 'flex':'none';
 });
+
+/* ================= COMPANIES ================= */
+function screenCompanies(){
+  return `
+  <div class="page-head"><div><h1>Companies</h1><p class="page-sub">${COMPANIES.length} legal entities under the Chemin Projects group</p></div>
+    <div class="page-head-actions"><button class="btn btn-primary btn-sm">${ic('plus')} Add Company</button></div>
+  </div>
+  <div class="grid g-3">
+    ${COMPANIES.map(c=>`
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+        <img src="${LOGO_SRC}" style="width:42px; height:42px; object-fit:contain; border-radius:10px; background:var(--paper); padding:4px;">
+        <div><div style="font-weight:700; color:var(--navy-950); font-size:14px;">${c.name}</div><div class="font-mono" style="font-size:11px; color:var(--ink-400);">${c.code}</div></div>
+      </div>
+      ${kv('GSTIN', c.gst)}
+      ${kv('PAN', c.pan)}
+      ${kv('Employees', c.employees)}
+      ${kv('Location', c.city)}
+      ${kv('Status', statusBadge(c.status))}
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <button class="btn btn-outline btn-sm" style="flex:1;" onclick="go('companyprofile')">${ic('eye')} View Profile</button>
+        <button class="btn btn-ghost btn-sm">${ic('edit')}</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* ================= CERTIFICATIONS ================= */
+const CERTIFICATIONS = [
+  {emp:'Arjun Nair', cert:'API 570 — Piping Inspector', issued:'Mar 2023', expires:'Mar 2026', status:'Expiring Soon'},
+  {emp:'Meera Iyengar', cert:'PMP — Project Management Professional', issued:'Jan 2021', expires:'Jan 2027', status:'Valid'},
+  {emp:'Kabir Malhotra', cert:'CEng — Chartered Engineer (IE Aus)', issued:'Jun 2019', expires:'Jun 2029', status:'Valid'},
+  {emp:'Ananya Joshi', cert:'NEBOSH IGC — Fire & Safety', issued:'Aug 2022', expires:'Aug 2025', status:'Expired'},
+  {emp:'Sanya Kapoor', cert:'STAAD.Pro Certified Structural Analyst', issued:'Feb 2024', expires:'Feb 2027', status:'Valid'},
+  {emp:'Devansh Rao', cert:'ASME Section VIII — Pressure Vessels', issued:'Oct 2023', expires:'Oct 2026', status:'Valid'},
+];
+function screenCertifications(){
+  return `
+  <div class="page-head"><div><h1>Certifications</h1><p class="page-sub">Professional certifications and renewal tracking</p></div>
+    <div class="page-head-actions"><button class="btn btn-primary btn-sm">${ic('plus')} Add Certification</button></div>
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('award','bl','58','Total Certifications','','')}
+    ${kpi('check2','lm','44','Valid','','')}
+    ${kpi('clock','am','9','Expiring Soon','',''  )}
+    ${kpi('shield','rd','5','Expired','','')}
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Certification</th><th>Issued</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${CERTIFICATIONS.map(c=>{
+        const map={'Valid':'b-green','Expiring Soon':'b-amber','Expired':'b-red'};
+        return `<tr>
+        <td><div class="cell-person"><div class="av" style="background:${avaColor(c.emp)}">${initials(c.emp)}</div><div class="cp-name">${c.emp}</div></div></td>
+        <td>${c.cert}</td><td>${c.issued}</td><td>${c.expires}</td>
+        <td><span class="badge ${map[c.status]}"><span class="badge-dot" style="background:currentColor"></span>${c.status}</span></td>
+        <td><div class="row-actions"><span class="icon-action">${ic('eye')}</span><span class="icon-action">${ic('edit')}</span></div></td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ================= ATTENDANCE ================= */
+function screenAttendance(){
+  return `
+  <div class="page-head"><div><h1>Attendance</h1><p class="page-sub">Wed, 19 August 2026 · Live tracking across all work locations</p></div>
+    <div class="page-head-actions">
+      <button class="btn btn-outline btn-sm">${ic('download')} Attendance Report</button>
+      <button class="btn btn-lime btn-sm">${ic('check2')} Check In</button>
+    </div>
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('activity','lm',String(ATTN_SUMMARY.present),'Present Today','up','81%')}
+    ${kpi('building','bl',String(ATTN_SUMMARY.office),'Office','','')}
+    ${kpi('compass','am',String(ATTN_SUMMARY.site),'Site','','')}
+    ${kpi('monitor','nv',String(ATTN_SUMMARY.wfh),'Work From Home','','')}
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('calendar','am',String(ATTN_SUMMARY.holidayWorking),'Holiday Working','','')}
+    ${kpi('clock','rd',String(ATTN_SUMMARY.late),'Late Coming','down','')}
+    ${kpi('gauge','bl',String(ATTN_SUMMARY.halfDay),'Half Day','','')}
+    ${kpi('users','nv',String(ATTN_SUMMARY.onLeave),'On Leave','','')}
+  </div>
+  <div class="grid g-12" style="margin-bottom:18px;">
+    <div class="card span-4"><div class="card-head"><h3>Attendance Trend</h3><span class="ch-sub">Last 8 weeks</span></div><div style="height:220px;"><canvas id="chart-attn-trend"></canvas></div></div>
+    <div class="card span-4"><div class="card-head"><h3>Work Location Split</h3></div><div style="height:220px;"><canvas id="chart-attn-location"></canvas></div></div>
+    <div class="card span-4"><div class="card-head"><h3>Weekly Attendance Heatmap</h3></div><div id="attn-heatmap" style="display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:10px;"></div></div>
+  </div>
+  <div class="card">
+    <div class="table-toolbar">
+      <div class="filter-row">
+        <div class="searchbox" style="width:220px;">${ic('search')}<input placeholder="Search employees…"></div>
+        <select class="select-mini"><option>All Locations</option><option>Office</option><option>Site</option><option>WFH</option><option>Client Site</option></select>
+        <select class="select-mini"><option>All Status</option><option>Present</option><option>Late</option><option>Half Day</option><option>On Leave</option></select>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Check In</th><th>Check Out</th><th>Location</th><th>Status</th></tr></thead>
+      <tbody>${ATTENDANCE_TODAY.map(a=>`
+        <tr><td><div class="cell-person"><div class="av" style="background:${avaColor(a.name)}">${initials(a.name)}</div><div class="cp-name">${a.name}</div></div></td>
+        <td class="font-mono">${a.checkIn}</td><td class="font-mono">${a.checkOut}</td>
+        <td><span class="badge b-navy">${a.location}</span></td>
+        <td>${statusBadge(a.status==='Present'?'Active':a.status==='Late'?'Review':a.status==='Half Day'?'Review':a.status)}</td></tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+function initAttendanceCharts(){
+  mkChart('chart-attn-trend', {type:'line', data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'], datasets:[{data:[91,89,93,88,94,92,90,89], borderColor:'#1B6FB0', backgroundColor:'rgba(27,111,176,.08)', fill:true, tension:.4, borderWidth:2.5, pointRadius:3}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:70,max:100,grid:{color:'#E4E8F0'}},x:{grid:{display:false}}}}});
+  mkChart('chart-attn-location', {type:'doughnut', data:{labels:['Office','Site','WFH','Client Site'], datasets:[{data:[ATTN_SUMMARY.office,ATTN_SUMMARY.site,ATTN_SUMMARY.wfh,10], backgroundColor:['#1B6FB0','#8DC63F','#F0A93B','#7C63E8'], borderWidth:3, borderColor:'#fff'}]}, options:{responsive:true,maintainAspectRatio:false, cutout:'65%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,usePointStyle:true,pointStyle:'circle',font:{size:10.5}}}}}});
+  const hm = document.getElementById('attn-heatmap');
+  if(hm){ let html=''; ['M','T','W','T','F','S','S'].forEach(d=>html+=`<div style="text-align:center; font-size:10px; color:var(--ink-400); font-weight:700;">${d}</div>`); for(let i=0;i<28;i++){ const v=0.2+Math.random()*0.75; html+=`<div class="heat-cell" style="background:rgba(141,198,63,${v.toFixed(2)});"></div>`; } hm.innerHTML=html; }
+}
+
+/* ================= LEAVE MANAGEMENT ================= */
+function screenLeave(){
+  return `
+  <div class="page-head"><div><h1>Leave Management</h1><p class="page-sub">Leave balances, requests and team approvals</p></div>
+    <div class="page-head-actions"><button class="btn btn-primary btn-sm">${ic('plus')} Apply Leave</button></div>
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${LEAVE_TYPES.map(l=>`
+    <div class="kpi-card">
+      <div class="kpi-icon bl" style="background:${l.color}18; color:${l.color};">${ic('calendar')}</div>
+      <div class="kpi-val">${l.total-l.used}<span style="font-size:14px; color:var(--ink-400); font-weight:600;">/${l.total}</span></div>
+      <div class="kpi-label">${l.name} Remaining</div>
+    </div>`).join('')}
+  </div>
+  <div class="grid g-12" style="margin-bottom:18px;">
+    <div class="card span-4"><div class="card-head"><h3>Leave Trend</h3><span class="ch-sub">Monthly requests</span></div><div style="height:220px;"><canvas id="chart-leave-trend"></canvas></div></div>
+    <div class="card span-8">
+      <div class="card-head"><h3>Team Leave Calendar</h3><span class="ch-sub">August 2026</span></div>
+      <div class="cal-grid">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}${Array.from({length:31}).map((_,i)=>{
+        const day=i+1; const onLeave = [15,16,18,19,20,24].includes(day);
+        return `<div class="cal-day ${day>19&&day<24?'':''}"><div class="cd-num">${day}</div>${onLeave?`<div class="cd-tag" style="background:var(--amber-100); color:#9A6B0F;">2 on leave</div>`:''}</div>`;
+      }).join('')}</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Leave Requests</h3></div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Leave Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${LEAVE_REQUESTS.map(l=>`
+        <tr><td><div class="cell-person"><div class="av" style="background:${avaColor(l.emp)}">${initials(l.emp)}</div><div class="cp-name">${l.emp}</div></div></td>
+        <td>${l.type}</td><td>${l.from}</td><td>${l.to}</td><td class="font-mono">${l.days}</td>
+        <td style="max-width:220px; color:var(--ink-500); font-size:12px;">${l.reason}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td><div class="row-actions">${l.status==='Pending'?`<span class="icon-action" onclick="toast('Leave approved')">${ic('check2')}</span><span class="icon-action" onclick="toast('Leave rejected')">${ic('x')}</span>`:`<span class="icon-action">${ic('eye')}</span>`}</div></td></tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+function initLeaveCharts(){
+  mkChart('chart-leave-trend', {type:'bar', data:{labels:['Mar','Apr','May','Jun','Jul','Aug'], datasets:[{data:[14,9,18,11,16,13], backgroundColor:'#F0A93B', borderRadius:6, maxBarThickness:26}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{grid:{color:'#E4E8F0'}}, x:{grid:{display:false}}}}});
+}
+
+/* ================= HOLIDAY CALENDAR ================= */
+function screenHolidays(){
+  const typeColor = {Public:'b-blue', Regional:'b-green', Optional:'b-amber', Company:'b-navy'};
+  return `
+  <div class="page-head"><div><h1>Holiday Calendar</h1><p class="page-sub">Public, regional, optional and company holidays — 2026</p></div>
+    <div class="page-head-actions"><button class="btn btn-primary btn-sm">${ic('plus')} Add Holiday</button></div>
+  </div>
+  <div class="grid g-12">
+    <div class="card span-8">
+      <div class="card-head"><h3>Upcoming Holidays</h3></div>
+      <div class="table-wrap"><table class="dtable">
+        <thead><tr><th>Holiday</th><th>Date</th><th>Type</th><th>Actions</th></tr></thead>
+        <tbody>${HOLIDAYS.map(h=>`
+          <tr><td class="cp-name">${h.name}</td><td>${h.date}</td>
+          <td><span class="badge ${typeColor[h.type]}">${h.type}</span></td>
+          <td><div class="row-actions"><span class="icon-action">${ic('edit')}</span><span class="icon-action">${ic('trash')}</span></div></td></tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card span-4">
+      <div class="card-head"><h3>Holiday Configuration</h3></div>
+      ${kv('Total Holidays (2026)', '18')}
+      ${kv('Public Holidays', '11')}
+      ${kv('Optional Holidays', '4')}
+      ${kv('Company Holidays', '3')}
+      <div class="section-title" style="margin-top:18px;">Legend</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${Object.entries(typeColor).map(([t,c])=>`<span class="badge ${c}" style="width:fit-content;">${t}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================= WORK LOCATION ================= */
+function screenWorkLocation(){
+  return `
+  <div class="page-head"><div><h1>Work Location</h1><p class="page-sub">Office, site, client-site and WFH distribution today</p></div></div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('building','bl',String(ATTN_SUMMARY.office),'Office','','')}
+    ${kpi('compass','lm',String(ATTN_SUMMARY.site),'Site','','')}
+    ${kpi('monitor','am',String(ATTN_SUMMARY.wfh),'Work From Home','','')}
+    ${kpi('briefcase','nv','11','Client Site','','')}
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Employees by Location</h3></div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Department</th><th>Location</th><th>GPS Status</th><th>Check In</th></tr></thead>
+      <tbody>${ATTENDANCE_TODAY.slice(0,10).map(a=>`
+        <tr><td><div class="cell-person"><div class="av" style="background:${avaColor(a.name)}">${initials(a.name)}</div><div class="cp-name">${a.name}</div></div></td>
+        <td>${a.dept}</td><td><span class="badge b-navy">${a.location}</span></td>
+        <td>${a.location==='WFH'?'<span class="badge b-gray">Not tracked</span>':'<span class="badge b-green">Verified</span>'}</td>
+        <td class="font-mono">${a.checkIn}</td></tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ================= EXPENSES ================= */
+function screenExpenses(){
+  const total = EXPENSES.reduce((s,x)=>s+x.amount,0);
+  const pending = EXPENSES.filter(x=>x.status==='Pending').reduce((s,x)=>s+x.amount,0);
+  return `
+  <div class="page-head"><div><h1>Expenses</h1><p class="page-sub">Travel, site and miscellaneous expense claims</p></div>
+    <div class="page-head-actions"><button class="btn btn-primary btn-sm">${ic('plus')} Submit Expense</button></div>
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('briefcase','bl','₹'+total.toLocaleString(),'Total Claimed (Aug)','','')}
+    ${kpi('clock','am','₹'+pending.toLocaleString(),'Pending Approval','','')}
+    ${kpi('check2','lm','₹68,750','Reimbursed','','')}
+    ${kpi('filetext','nv',String(EXPENSES.length),'Total Claims','','')}
+  </div>
+  <div class="grid g-12" style="margin-bottom:18px;">
+    <div class="card span-5"><div class="card-head"><h3>Expense by Category</h3></div><div style="height:230px;"><canvas id="chart-expense-cat"></canvas></div></div>
+    <div class="card span-7"><div class="card-head"><h3>Monthly Expense Trend</h3></div><div style="height:230px;"><canvas id="chart-expense-trend"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="table-toolbar"><div class="filter-row">
+      <select class="select-mini"><option>All Categories</option><option>Travel</option><option>Food</option><option>Accommodation</option><option>Site Expenses</option><option>Fuel</option><option>Miscellaneous</option></select>
+      <select class="select-mini"><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option></select>
+    </div><button class="btn btn-outline btn-sm">${ic('download')} Export</button></div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Category</th><th>Description</th><th>Amount</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${EXPENSES.map(x=>`
+        <tr><td><div class="cell-person"><div class="av" style="background:${avaColor(x.emp)}">${initials(x.emp)}</div><div class="cp-name">${x.emp}</div></div></td>
+        <td><span class="badge b-navy">${x.category}</span></td>
+        <td style="max-width:220px; color:var(--ink-600); font-size:12.5px;">${x.desc}</td>
+        <td class="font-mono">₹${x.amount.toLocaleString()}</td><td>${x.date}</td><td>${statusBadge(x.status)}</td>
+        <td><div class="row-actions">${x.status==='Pending'?`<span class="icon-action" onclick="toast('Expense approved')">${ic('check2')}</span><span class="icon-action" onclick="toast('Expense rejected')">${ic('x')}</span>`:`<span class="icon-action">${ic('eye')}</span>`}</div></td></tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+function initExpenseCharts(){
+  mkChart('chart-expense-cat', {type:'doughnut', data:{labels:['Travel','Food','Accommodation','Site Expenses','Fuel','Misc.'], datasets:[{data:[38200,2850,16500,12400,3200,1100], backgroundColor:['#1B6FB0','#8DC63F','#F0A93B','#7C63E8','#159895','#C1C5D1'], borderWidth:3, borderColor:'#fff'}]}, options:{responsive:true,maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,usePointStyle:true,pointStyle:'circle',font:{size:10}}}}}});
+  mkChart('chart-expense-trend', {type:'bar', data:{labels:['Mar','Apr','May','Jun','Jul','Aug'], datasets:[{data:[142000,168000,131000,189000,204000,74250], backgroundColor:'#1B6FB0', borderRadius:6, maxBarThickness:28}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{grid:{color:'#E4E8F0'}}, x:{grid:{display:false}}}}});
+}
+
+/* ================= PAYROLL ================= */
+function screenPayroll(){
+  return `
+  <div class="page-head"><div><h1>Payroll</h1><p class="page-sub">Salary structures, processing and compensation — August 2026</p></div>
+    <div class="page-head-actions"><button class="btn btn-outline btn-sm">${ic('download')} Export Register</button><button class="btn btn-primary btn-sm">${ic('check2')} Process Payroll</button></div>
+  </div>
+  <div class="grid g-4" style="margin-bottom:18px;">
+    ${kpi('users','bl',String(PAYROLL_SUMMARY.processed),'Employees Processed','','')}
+    ${kpi('clock','am',String(PAYROLL_SUMMARY.pending),'Pending Processing','','')}
+    ${kpi('briefcase','lm','₹'+(PAYROLL_SUMMARY.totalPayout/10000000).toFixed(2)+'Cr','Total Payout','','')}
+    ${kpi('target','nv','₹'+PAYROLL_SUMMARY.avgSalary.toLocaleString(),'Average Salary','','')}
+  </div>
+  <div class="grid g-12" style="margin-bottom:18px;">
+    <div class="card span-7"><div class="card-head"><h3>Payroll Summary</h3><span class="ch-sub">Last 6 months</span></div><div style="height:250px;"><canvas id="chart-payroll-summary"></canvas></div></div>
+    <div class="card span-5">
+      <div class="card-head"><h3>Salary Structure — Sample</h3><span class="ch-sub">Senior Engineer, Grade E4</span></div>
+      ${PAYROLL_COMPONENTS.map(c=>`
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line-soft); font-size:12.8px;">
+          <span style="color:var(--ink-600);">${c.name}</span>
+          <span class="font-mono" style="font-weight:600; color:${c.type==='Earning'?'var(--navy-950)':'var(--red-500)'};">${c.type==='Earning'?'+':'−'}₹${c.amount.toLocaleString()}</span>
+        </div>`).join('')}
+      <div style="display:flex; justify-content:space-between; padding:12px 0 0; font-size:13.5px; font-weight:700; color:var(--navy-950);"><span>Net Payable</span><span class="font-mono">₹75,985</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Payroll Processing Status</h3></div>
+    <div class="table-wrap"><table class="dtable">
+      <thead><tr><th>Employee</th><th>Company</th><th>Designation</th><th>Gross Salary</th><th>Deductions</th><th>Net Salary</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${EMPLOYEES.map((e,i)=>{ const gross=68000+i*3200; const ded=Math.round(gross*0.145); return `
+        <tr><td><div class="cell-person"><div class="av" style="background:${avaColor(e.name)}">${initials(e.name)}</div><div class="cp-name">${e.name}</div></div></td>
+        <td>Chemin Projects Pvt Ltd</td><td>${e.desig}</td>
+        <td class="font-mono">₹${gross.toLocaleString()}</td><td class="font-mono">₹${ded.toLocaleString()}</td>
+        <td class="font-mono" style="font-weight:700;">₹${(gross-ded).toLocaleString()}</td>
+        <td>${statusBadge(i%9===8?'Pending':'Approved')}</td>
+        <td><div class="row-actions"><span class="icon-action" onclick="go('salaryslip')">${ic('eye')}</span><span class="icon-action">${ic('download')}</span></div></td></tr>`;}).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+function initPayrollCharts(){
+  mkChart('chart-payroll-summary', {type:'bar', data:{labels:['Mar','Apr','May','Jun','Jul','Aug'], datasets:[{label:'Payout (₹L)', data:[176,181,179,184,188,184], backgroundColor:'#0A2A70', borderRadius:6, maxBarThickness:30}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{grid:{color:'#E4E8F0'}}, x:{grid:{display:false}}}}});
+}
+
+/* ================= SALARY SLIP ================= */
+function screenSalarySlip(){
+  const e = EMPLOYEES[0];
+  const earnings = PAYROLL_COMPONENTS.filter(c=>c.type==='Earning');
+  const deductions = PAYROLL_COMPONENTS.filter(c=>c.type==='Deduction');
+  const grossTotal = earnings.reduce((s,c)=>s+c.amount,0);
+  const dedTotal = deductions.reduce((s,c)=>s+c.amount,0);
+  return `
+  <div class="page-head"><div><h1>Salary Slips</h1><p class="page-sub">Generate and download professional salary slips</p></div>
+    <div class="page-head-actions">
+      <select class="select-mini"><option>${e.name}</option>${EMPLOYEES.slice(1,4).map(x=>`<option>${x.name}</option>`).join('')}</select>
+      <select class="select-mini"><option>August 2026</option><option>July 2026</option><option>June 2026</option></select>
+      <button class="btn btn-primary btn-sm">${ic('download')} Download PDF</button>
+    </div>
+  </div>
+  <div class="card" style="max-width:820px; margin:0 auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:2px solid var(--navy-900); margin-bottom:20px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <img src="${LOGO_SRC}" style="height:44px;">
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; color:var(--navy-950);">Chemin Projects Pvt Ltd</div><div style="font-size:11.5px; color:var(--ink-400);">Andheri East, Mumbai 400069, India · GSTIN 27AACCC1234A1Z5</div></div>
+      </div>
+      <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; color:var(--navy-950);">Payslip</div><div style="font-size:11.5px; color:var(--ink-400);">August 2026</div></div>
+    </div>
+    <div class="grid g-2" style="margin-bottom:24px;">
+      <div>${kv('Employee Name', e.name)}${kv('Employee ID', e.id)}${kv('Designation', e.desig)}${kv('Department', e.dept)}</div>
+      <div>${kv('PAN', 'ABCPN'+ (1000+e.id.charCodeAt(6))+'K')}${kv('PF UAN', '10123456'+e.id.slice(-4))}${kv('Bank A/C', '••••'+e.id.slice(-4))}${kv('Pay Period', '01 – 31 Aug 2026')}</div>
+    </div>
+    <div class="grid g-2" style="margin-bottom:16px;">
+      <div>
+        <div class="section-title">Earnings</div>
+        ${earnings.map(c=>`<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:12.8px;"><span style="color:var(--ink-600);">${c.name}</span><span class="font-mono">₹${c.amount.toLocaleString()}</span></div>`).join('')}
+        <div style="display:flex; justify-content:space-between; padding:9px 0; font-weight:700; color:var(--navy-950); font-size:13px;"><span>Gross Earnings</span><span class="font-mono">₹${grossTotal.toLocaleString()}</span></div>
+      </div>
+      <div>
+        <div class="section-title">Deductions</div>
+        ${deductions.map(c=>`<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:12.8px;"><span style="color:var(--ink-600);">${c.name}</span><span class="font-mono">₹${c.amount.toLocaleString()}</span></div>`).join('')}
+        <div style="display:flex; justify-content:space-between; padding:9px 0; font-weight:700; color:var(--red-500); font-size:13px;"><span>Total Deductions</span><span class="font-mono">₹${dedTotal.toLocaleString()}</span></div>
+      </div>
+    </div>
+    <div style="background:var(--navy-950); color:#fff; border-radius:14px; padding:18px 22px; display:flex; align-items:center; justify-content:space-between;">
+      <div><div style="font-size:11px; opacity:.6; text-transform:uppercase; letter-spacing:.08em;">Net Payable</div><div style="font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700;">₹${(grossTotal-dedTotal).toLocaleString()}</div></div>
+      <button class="btn btn-lime btn-sm">${ic('download')} Download PDF</button>
+    </div>
+  </div>`;
+}
 
 </script>
 </body>
